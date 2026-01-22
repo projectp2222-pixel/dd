@@ -4,10 +4,10 @@ import pandas as pd
 import os
 from datetime import datetime
 
-def scrape_dram_to_desktop():
+def scrape_dram_github():
     url = "https://www.dramexchange.com/"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
 
     try:
@@ -22,44 +22,42 @@ def scrape_dram_to_desktop():
             cells = tr.find_all(['td', 'th'])
             row_data = [c.get_text(strip=True) for c in cells]
             
+            # DDR 제품군 데이터만 추출
             if len(row_data) >= 7 and "DDR" in row_data[0]:
-                if "Spot" not in row_data[1] and "Memory" not in row_data[2]:
+                if "Spot" not in row_data[1]:
                     extracted_rows.append(row_data[:7])
 
         if not extracted_rows:
+            print("❌ 데이터를 찾지 못했습니다.")
             return
 
+        # 상위 7개 항목 데이터프레임 생성
         df = pd.DataFrame(extracted_rows[:7], columns=columns)
 
-        # --- [수정된 부분: 바탕화면 경로 고정] ---
+        # --- [경로 설정 핵심 부분] ---
+        # 1. 현재 파이썬 파일이 실행되는 '폴더'의 절대 경로를 잡습니다.
+        base_path = os.getcwd() 
+        
         now = datetime.now()
-        
-        # 1. 사용자의 윈도우 바탕화면 경로를 자동으로 찾아냅니다.
-        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-        
-        # 2. 바탕화면에 'DRAM_Prices'라는 메인 폴더, 그 안에 '2026-01' 같은 월별 폴더를 설정합니다.
-        folder_name = now.strftime("%Y-%m")
-        target_folder = os.path.join(desktop_path, "DRAM_Prices", folder_name)
-        
-        # 3. 폴더가 없으면 새로 만듭니다.
-        if not os.path.exists(target_folder):
-            os.makedirs(target_folder)
-
-        # 4. 파일명을 정하고 최종 경로를 합칩니다.
         timestamp = now.strftime("%Y-%m-%d_%H-%M") 
         file_name = f"{timestamp}_DRAM_Price.xlsx"
-        file_path = os.path.join(target_folder, file_name)
         
-        # 5. 엑셀 저장
+        # 2. 파일 저장 경로를 절대 경로로 합칩니다.
+        file_path = os.path.join(base_path, file_name)
+        
+        # 3. 엑셀 저장 (경로를 명시적으로 지정)
         df.to_excel(file_path, index=False)
-        print(f"✅ 바탕화면 저장 완료: {file_path}")
+        
+        print(f"✅ 저장 완료! 파일 위치: {file_path}")
+        print(df) # 로그에서도 데이터를 볼 수 있게 출력합니다.
 
     except Exception as e:
-        # 에러 발생 시 바탕화면에 로그를 남겨서 바로 볼 수 있게 합니다.
-        desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-        with open(os.path.join(desktop, "dram_error_log.txt"), "a", encoding="utf-8") as f:
-            f.write(f"[{datetime.now()}] 에러 발생: {str(e)}\n")
+        print(f"❌ 오류 발생: {e}")
+        # 오류가 나면 깃허브 액션도 실패로 표시되게 강제 종료합니다.
+        import sys
+        sys.exit(1)
 
 if __name__ == "__main__":
-    scrape_dram_to_desktop()
+    scrape_dram_github()
+
     
