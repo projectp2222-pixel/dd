@@ -27,4 +27,4 @@ jobs:
         env:
           # 3단계에서 저장한 비밀 열쇠(GCP_KEYS)를 파이썬에게 전달합니다.
           GCP_KEYS: ${{ secrets.GCP_KEYS }}
-        run: python dram_script.py # 실제 올린 파이썬 파일 이름과 똑같아야 합니다!
+        run: python 바탕화면고정코드.py # 실제 올린 파이썬 파일 이름과 똑같아야 합니다!
