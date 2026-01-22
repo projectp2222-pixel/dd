@@ -5,29 +5,25 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone # 시간 설정을 위해 추가됨
 import sys
 
 def scrape_to_google_sheet():
-    # 1. 구글 인증 설정 (깃허브 비밀 금고에서 열쇠를 꺼내옵니다)
+    # 1. 구글 인증 설정
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     
     try:
-        # 깃허브 Settings에서 등록한 'GCP_KEYS'를 가져오는 부분입니다.
         key_json = os.environ.get("GCP_KEYS")
         if not key_json:
-            print("❌ 에러: GCP_KEYS를 찾을 수 없습니다. 깃허브 Secrets 설정을 확인하세요.")
+            print("❌ 에러: GCP_KEYS를 찾을 수 없습니다.")
             return
 
         key_dict = json.loads(key_json)
         creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
         client = gspread.authorize(creds)
 
-        # ---------------------------------------------------------
-        # 2. 구글 시트 열기 (중요: 본인이 만든 구글 시트 이름을 적으세요!)
-        spreadsheet_name = "DRAM_Data_Sheet"  # <--- 여기에 구글 시트 제목을 똑같이 적으세요!
-        # ---------------------------------------------------------
-        
+        # 구글 시트 이름 (본인의 시트 이름과 똑같은지 확인하세요!)
+        spreadsheet_name = "디램가격추출" 
         sheet = client.open(spreadsheet_name).sheet1
         print(f"✅ 구글 시트 접속 성공: {spreadsheet_name}")
 
@@ -35,7 +31,7 @@ def scrape_to_google_sheet():
         print(f"❌ 구글 시트 인증/접속 에러: {e}")
         return
 
-    # 3. 데이터 크롤링 (우리가 쓰던 로직 그대로입니다)
+    # 2. 데이터 크롤링 및 한국 시간 설정
     url = "https://www.dramexchange.com/"
     headers = {"User-Agent": "Mozilla/5.0"}
     
@@ -43,22 +39,27 @@ def scrape_to_google_sheet():
         response = requests.get(url, headers=headers)
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M")
-        new_rows = []
+        # --- [한국 시간으로 고정하는 핵심 코드] ---
+        # 세계 표준시(UTC)에 9시간을 더해 한국 시간대(KST)를 만듭니다.
+        kst = timezone(timedelta(hours=9))
+        now = datetime.now(kst).strftime("%Y-%m-%d %H:%M") 
+        # ----------------------------------------
 
+        new_rows = []
         for tr in soup.find_all('tr'):
             cells = tr.find_all(['td', 'th'])
             row_data = [c.get_text(strip=True) for c in cells]
+            
+            # DDR 제품군만 추출 (Spot 데이터 제외)
             if len(row_data) >= 7 and "DDR" in row_data[0] and "Spot" not in row_data[1]:
-                # [시간, 품목명, 가격들...] 순서로 한 줄의 데이터를 만듭니다.
+                # 맨 앞에 한국 시간을 붙여서 한 줄을 만듭니다.
                 new_rows.append([now] + row_data[:7])
                 if len(new_rows) >= 7: break
 
-        # 4. 구글 시트 맨 아래에 데이터 추가
+        # 3. 구글 시트 맨 아래에 데이터 누적
         if new_rows:
-            # append_rows는 기존 데이터 아래에 새로운 줄들을 이어 붙입니다.
             sheet.append_rows(new_rows)
-            print(f"✅ {len(new_rows)}개의 데이터를 구글 시트에 누적했습니다!")
+            print(f"✅ {now} 기준, {len(new_rows)}개의 데이터를 시트에 추가했습니다!")
         else:
             print("❌ 추출된 데이터가 없습니다.")
 
@@ -67,6 +68,3 @@ def scrape_to_google_sheet():
 
 if __name__ == "__main__":
     scrape_to_google_sheet()
-
-    
-
