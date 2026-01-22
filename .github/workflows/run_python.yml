@@ -1,10 +1,10 @@
-name: DRAM Price Bot
+name: DRAM Price Bot to Google Sheets
 
 on:
   schedule:
     # 한국 시간 기준 오후 1시, 4시, 8시 자동 실행
     - cron: '0 4,7,11 * * *'
-  workflow_dispatch: # 수동 실행 버튼 생성
+  workflow_dispatch: # 수동 실행 버튼
 
 jobs:
   build:
@@ -19,15 +19,12 @@ jobs:
           python-version: '3.9'
 
       - name: 필수 라이브러리 설치
+        # 구글 시트 연동에 필요한 라이브러리들을 추가했습니다.
         run: |
-          pip install requests beautifulsoup4 pandas openpyxl
+          pip install requests beautifulsoup4 pandas gspread oauth2client
 
       - name: 파이썬 코드 실행
-        run: python 바탕화면고정코드.py # 실제 업로드한 파일 이름과 일치하는지 꼭 확인하세요!
-
-      - name: 결과 파일 확인 및 업로드
-        uses: actions/upload-artifact@v4
-        with:
-          name: dram-price-result
-          path: ./*.xlsx
-          if-no-files-found: error
+        env:
+          # 3단계에서 저장한 비밀 열쇠(GCP_KEYS)를 파이썬에게 전달합니다.
+          GCP_KEYS: ${{ secrets.GCP_KEYS }}
+        run: python dram_script.py # 실제 올린 파이썬 파일 이름과 똑같아야 합니다!
