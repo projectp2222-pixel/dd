@@ -2,20 +2,19 @@ name: DRAM Price Bot
 
 on:
   schedule:
-    # UTC 기준 시간입니다. (한국 시간 - 9시간)
-    # 오후 1시(04:00), 오후 4시(07:00), 오후 8시(11:00)
+    # 한국 시간 기준 오후 1시, 4시, 8시 자동 실행
     - cron: '0 4,7,11 * * *'
-  workflow_dispatch: # 수동으로 실행해볼 수 있는 버튼 생성
+  workflow_dispatch: # 수동 실행 버튼 생성
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: 저장소 코드 가져오기
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 파이썬 설정
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
@@ -24,10 +23,11 @@ jobs:
           pip install requests beautifulsoup4 pandas openpyxl
 
       - name: 파이썬 코드 실행
-        run: python 바탕화면고정코드.py
-        
-      - name: 엑셀 파일 업로드 (확인용)
+        run: python 바탕화면고정코드.py # 실제 업로드한 파일 이름과 일치하는지 꼭 확인하세요!
+
+      - name: 결과 파일 확인 및 업로드
         uses: actions/upload-artifact@v4
         with:
           name: dram-price-result
-          path: "*.xlsx"  # 모든 엑셀 파일을 아티팩트로 저장
+          path: ./*.xlsx
+          if-no-files-found: error
