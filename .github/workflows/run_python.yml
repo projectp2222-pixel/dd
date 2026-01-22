@@ -24,4 +24,4 @@ jobs:
           pip install requests beautifulsoup4 pandas openpyxl
 
       - name: 파이썬 코드 실행
-        run: python dram_script.py
+        run: python 바탕화면고정코드.py
